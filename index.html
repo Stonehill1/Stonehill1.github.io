@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Магазин Stonehill</title>
+	<link rel="icon" href="assets/favicon.png">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<header class="site-header">
+		<div class="container header-inner">
+			<a class="logo" href="#" title="Домой" aria-label="Домой">
+				<img src="assets/logo.png" alt="Логотип" class="logo-img">
+			</a>
+			<h1 class="site-title">Магазин Stonehill</h1>
+			<div class="currency">
+				<label for="currency-select">Валюта:</label>
+				<select id="currency-select" aria-label="Выбор валюты">
+					<option value="RUB">RUB ₽</option>
+					<option value="UAH">UAH ₴</option>
+				</select>
+				<a class="rate" id="rate-link" href="#" target="_blank" rel="noopener" title="Курс обновляется автоматически">
+					<span id="rate-display"></span>
+				</a>
+			</div>
+		</div>
+	</header>
+
+	<main class="container">
+		<section id="prefixes" class="section">
+			<h2 class="section-title">Оформление ника</h2>
+			<div class="grid" id="prefixes-grid"></div>
+		</section>
+
+		<section id="particles" class="section">
+			<h2 class="section-title">Частицы вокруг игрока</h2>
+			<div class="grid" id="particles-grid"></div>
+		</section>
+
+		<section id="services" class="section">
+			<h2 class="section-title">Услуги</h2>
+			<div class="grid" id="services-grid"></div>
+		</section>
+
+		<section class="cta-section">
+			<p class="cta-desc">При нажатии на кнопку «Купить» скопируется шаблон заявки и откроется ссылка для связи.</p>
+			<p class="copy-hint" id="copy-hint" role="status" aria-live="polite"></p>
+		</section>
+
+		<!-- Информационное модальное окно -->
+		<div class="modal-backdrop" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-modal-title">
+			<div class="modal">
+				<h3 id="info-modal-title" class="modal-title">Информация</h3>
+				<p class="modal-text">При нажатии на кнопку «Купить» скопируется шаблон заявки и откроется ссылка для связи.</p>
+				<button type="button" class="modal-close" id="info-modal-close" aria-label="Закрыть">Закрыть</button>
+			</div>
+		</div>
+	</main>
+
+	<footer class="site-footer">
+		<div class="container">
+			<p>© <span id="year"></span> Stonehill. Все права защищены.</p>
+		</div>
+	</footer>
+
+	<script src="script.js"></script>
+</body>
+</html>
+
