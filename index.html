@@ -48,7 +48,6 @@
 
 		<section class="cta-section">
 			<p class="cta-desc">При нажатии скопируется шаблон заявки. Укажите название позиции и данные, после чего откроется ссылка для связи.</p>
-			<button id="contact-btn" class="contact-btn" type="button">Обратиться к продавцу</button>
 			<p class="copy-hint" id="copy-hint" role="status" aria-live="polite"></p>
 		</section>
 	</main>
@@ -58,6 +57,19 @@
 			<p>© <span id="year"></span> Stonehill. Все права защищены.</p>
 		</div>
 	</footer>
+
+	<!-- Modal предупреждения о переходе -->
+	<div id="purchase-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="purchase-modal-title">
+		<div class="modal">
+			<h2 id="purchase-modal-title" class="modal-title">⚠️ Переход к продавцу</h2>
+			<p class="modal-text">Вы будете перенаправлены к продавцу для оформления покупки. Текст заявки будет скопирован автоматически.</p>
+			<p class="modal-text modal-product-info" id="modal-product-info"></p>
+			<div class="modal-actions">
+				<button id="purchase-modal-confirm" class="btn modal-btn-confirm">Продолжить</button>
+				<button id="purchase-modal-cancel" class="btn btn-secondary modal-btn-cancel">Отмена</button>
+			</div>
+		</div>
+	</div>
 
 	<script src="script.js"></script>
 </body>
