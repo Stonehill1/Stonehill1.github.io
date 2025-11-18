@@ -12,7 +12,6 @@ const products = {
 };
 
 // Цены в RUB по срокам: 1 мес, 3 мес, навсегда
-// Для "Оформление ника" (prefixes), "Частицы вокруг игрока" (particles) и услуги "Префикс в табе"
 const pricesRub = {
     durations: ["1 мес", "3 мес", "навсегда"],
     prefixes: { "1 мес": 45, "3 мес": 120, "навсегда": 1000 },
@@ -29,13 +28,43 @@ const rateDisplay = document.getElementById('rate-display');
 const rateLink = document.getElementById('rate-link');
 const yearEl = document.getElementById('year');
 const copyHint = document.getElementById('copy-hint');
-const infoModal = document.getElementById('info-modal');
-const infoModalClose = document.getElementById('info-modal-close');
+
+// Модальное окно
+const purchaseModal = document.getElementById('purchase-modal');
+const modalProductInfo = document.getElementById('modal-product-info');
+const modalConfirm = document.getElementById('purchase-modal-confirm');
+const modalCancel = document.getElementById('purchase-modal-cancel');
 
 const state = {
-	currency: 'RUB', // RUB or UAH
-	rubToUah: 0.45 // fallback
+	currency: 'RUB',
+	rubToUah: 0.45,
+	pendingPurchase: null,
+	referralCode: null
 };
+
+// Получение реферального кода из URL
+function getReferralCode() {
+	const urlParams = new URLSearchParams(window.location.search);
+	return urlParams.get('ref');
+}
+
+// Сохранение реферального кода
+function saveReferralCode(code) {
+	if (code) {
+		try {
+			localStorage.setItem('referralCode', code);
+			state.referralCode = code;
+		} catch {}
+	}
+}
+
+// Загрузка реферального кода
+function loadReferralCode() {
+	try {
+		const saved = localStorage.getItem('referralCode');
+		if (saved) state.referralCode = saved;
+	} catch {}
+}
 
 function formatPrice(valueRub) {
 	if (state.currency === 'RUB') return `${valueRub} ₽`;
@@ -69,7 +98,6 @@ function saveCachedRate(rate) {
 
 async function fetchRateRubUah() {
 	try {
-		// Primary: exchangerate.host (non-.ua)
 		const url = 'https://api.exchangerate.host/latest?base=RUB&symbols=UAH';
 		const res = await fetch(url, { cache: 'no-store' });
 		if (!res.ok) throw new Error('Primary failed');
@@ -84,7 +112,6 @@ async function fetchRateRubUah() {
 		}
 		throw new Error('Primary no rate');
 	} catch (e) {
-		// Fallback 1: Frankfurter (ECB) — non-.ua
 		try {
 			const url2 = 'https://api.frankfurter.app/latest?from=RUB&to=UAH';
 			const res2 = await fetch(url2, { cache: 'no-store' });
@@ -100,7 +127,6 @@ async function fetchRateRubUah() {
 			}
 			throw new Error('F1 no rate');
 		} catch {
-			// Fallback 2: open.er-api.com — non-.ua
 			try {
 				const url3 = 'https://open.er-api.com/v6/latest/RUB';
 				const res3 = await fetch(url3, { cache: 'no-store' });
@@ -158,7 +184,7 @@ function createCard(title, priceRub, imgPath, durationControls) {
 		const priceRubNow = Number(price.dataset.priceRub);
 		const sel = cardEl.querySelector('.duration-selector select');
 		const duration = sel ? sel.value : null;
-		handleBuy(title, priceRubNow, duration);
+		showPurchaseModal(title, priceRubNow, duration);
 	});
 	actions.appendChild(btn);
 	body.append(h3, priceRow, actions);
@@ -186,7 +212,6 @@ function createDurationControls(getPriceByDurationCb, onPriceUpdate) {
         onPriceUpdate(priceRub);
     };
     select.addEventListener('change', update);
-    // init
     select.value = pricesRub.durations[0];
     setTimeout(update);
     return { controlsEl, get value() { return select.value; } };
@@ -208,13 +233,13 @@ function renderAll() {
             p.dataset.priceRub = String(rub);
             p.textContent = formatPrice(rub);
         };
-		const durationControls = createDurationControls(d => pricesRub.prefixes[d], rub => {/* noop; replaced below */});
+		const durationControls = createDurationControls(d => pricesRub.prefixes[d], rub => {});
         const card = createCard(name, pricesRub.prefixes[pricesRub.durations[0]], img, durationControls);
-        // override updater now card exists
-        const update = (rub) => priceElUpdater(card, rub);
 	durationControls.controlsEl.querySelector('select').addEventListener('change', (e) => {
 			const d = e.target.value;
-			update(pricesRub.prefixes[d]);
+			const p = card.querySelector('.price');
+			p.dataset.priceRub = String(pricesRub.prefixes[d]);
+			p.textContent = formatPrice(Number(p.dataset.priceRub));
 		});
         prefixesGrid.appendChild(card);
     });
@@ -250,21 +275,45 @@ function renderAll() {
 }
 
 function updatePrices() {
-	// Recompute visible prices according to currency
 	document.querySelectorAll('.price').forEach(p => {
 		const rub = Number(p.dataset.priceRub || 0);
 		p.textContent = formatPrice(rub);
 	});
 }
 
-function handleBuy(title, priceRub, duration) {
-    const priceText = formatPrice(priceRub);
-    const durText = duration ? `, срок: ${duration}` : '';
-    const message = `Здравствуйте! Хочу купить: ${title} — ${priceText}${durText}`;
+function showPurchaseModal(title, priceRub, duration) {
+	state.pendingPurchase = { title, priceRub, duration };
+	const priceText = formatPrice(priceRub);
+	const durText = duration ? `, срок: ${duration}` : '';
+	modalProductInfo.innerHTML = `<strong>${title}</strong> — ${priceText}${durText}`;
+	purchaseModal.classList.add('is-open');
+}
+
+function closePurchaseModal() {
+	purchaseModal.classList.add('is-fading-out');
+	setTimeout(() => {
+		purchaseModal.classList.remove('is-open');
+		purchaseModal.classList.remove('is-fading-out');
+		state.pendingPurchase = null;
+	}, 300);
+}
+
+function confirmPurchase() {
+	if (!state.pendingPurchase) return;
+	const { title, priceRub, duration } = state.pendingPurchase;
+	const priceText = formatPrice(priceRub);
+	const durText = duration ? `, срок: ${duration}` : '';
+	const refText = state.referralCode ? ` [Реферал: ${state.referralCode}]` : '';
+	const message = `Здравствуйте! Хочу купить: ${title} — ${priceText}${durText}${refText}`;
+	
 	copyToClipboard(message);
+	closePurchaseModal();
+	
 	const link = CONTACT_LINK;
 	if (link) {
-		window.open(link, '_blank');
+		setTimeout(() => {
+			window.open(link, '_blank');
+		}, 100);
 	}
 }
 
@@ -282,10 +331,8 @@ function showHint(text) {
 	setTimeout(() => { copyHint.textContent = ''; }, 3000);
 }
 
-// Config: set your contact link here (e.g., Telegram/Discord)
+// Config: set your contact link here
 const CONTACT_LINK = 'https://t.me/Irissaynoai_bot';
-
-// Удалена кнопка обращения: логика перенесена в кнопку "Купить"
 
 // Currency select
 currencySelect.addEventListener('change', () => {
@@ -293,34 +340,24 @@ currencySelect.addEventListener('change', () => {
 	updatePrices();
 });
 
+// Modal controls
+modalConfirm.addEventListener('click', confirmPurchase);
+modalCancel.addEventListener('click', closePurchaseModal);
+purchaseModal.addEventListener('click', (e) => {
+	if (e.target === purchaseModal) closePurchaseModal();
+});
+window.addEventListener('keydown', (e) => {
+	if (e.key === 'Escape' && purchaseModal.classList.contains('is-open')) {
+		closePurchaseModal();
+	}
+});
+
 // Init
 yearEl.textContent = new Date().getFullYear();
+const refCode = getReferralCode();
+if (refCode) saveReferralCode(refCode);
+loadReferralCode();
 renderAll();
-// Try show cached first for instant UI
 loadCachedRate();
 fetchRateRubUah().then(updatePrices);
 setInterval(fetchRateRubUah, 5 * 60 * 1000);
-
-// Modal controls
-if (infoModal && infoModalClose) {
-    const closeModal = () => {
-        infoModal.classList.add('is-fading-out');
-        setTimeout(() => {
-            infoModal.classList.remove('is-open');
-            infoModal.classList.remove('is-fading-out');
-        }, 700);
-    };
-    const openModal = () => {
-        infoModal.classList.add('is-open');
-    };
-    // Ensure it's open on load (already has is-open in HTML)
-    setTimeout(() => openModal(), 10);
-    infoModalClose.addEventListener('click', closeModal);
-    infoModal.addEventListener('click', (e) => {
-        if (e.target === infoModal) closeModal();
-    });
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeModal();
-    });
-}
-
