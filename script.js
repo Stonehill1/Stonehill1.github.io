@@ -20,7 +20,7 @@ const pricesRub = {
     servicesFixed: {
         "Снятие варна (разово)": 100,
         "Снятие Бана (разово)": 500,
-        "Проходка": 400
+        "Проходка": 60
     }
 };
 
@@ -391,3 +391,4 @@ loadCachedRate();
 fetchRateRubUah().then(updatePrices);
 setInterval(fetchRateRubUah, 5 * 60 * 1000);
 checkAutoPurchase();
+
